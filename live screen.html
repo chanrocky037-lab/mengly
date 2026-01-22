@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Monitor Dashboard</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+    <style>
+        /* Dark Mode Dashboard Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        /* Status Indicator */
+        .status-bar {
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            background-color: #bbb;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .online { background-color: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
+        .offline { background-color: #e74c3c; }
+
+        /* Screen Container */
+        .screen-container {
+            background-color: #000;
+            padding: 10px;
+            border-radius: 8px;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        /* The Live Image */
+        #live-screen {
+            width: 100%;
+            max-width: 1000px; /* Adjust this to make the screen bigger/smaller */
+            border-radius: 4px;
+            display: block;
+        }
+
+        /* Loading Placeholder */
+        .placeholder {
+            padding: 100px;
+            color: #555;
+            border: 2px dashed #333;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Target Monitor</h1>
+
+    <div class="status-bar">
+        <span id="status-dot" class="status-dot"></span>
+        Status: <span id="status-text">Disconnected</span>
+    </div>
+
+    <div class="screen-container">
+        <img id="live-screen" src="" alt="Waiting for stream..." style="display:none;">
+        <div id="placeholder" class="placeholder">Waiting for signal...</div>
+    </div>
+
+    <script>
+        // 1. CONFIGURATION
+        // Since you are using VS Code Live Server, we must point explicitly to the Python backend.
+        // If the Python server is on the same wifi but a different PC, change 'localhost' to that PC's IP (e.g., 'http://192.168.1.5:5000')
+        const PYTHON_SERVER_URL = "http://localhost:5000";
+
+        // 2. CONNECT
+        const socket = io(PYTHON_SERVER_URL);
+        
+        const imgElement = document.getElementById('live-screen');
+        const placeholder = document.getElementById('placeholder');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+
+        // 3. EVENTS
+        
+        // When connected to the Python Server
+        socket.on('connect', () => {
+            console.log("Connected to Python Server!");
+            statusDot.className = "status-dot online";
+            statusText.innerText = "Connected";
+            statusText.style.color = "#fff";
+        });
+
+        // When disconnected
+        socket.on('disconnect', () => {
+            console.log("Disconnected...");
+            statusDot.className = "status-dot offline";
+            statusText.innerText = "Disconnected (Check Server)";
+            statusText.style.color = "#888";
+        });
+
+        // When a new frame arrives
+        socket.on('update_screen', (data) => {
+            // Hide placeholder, show image
+            placeholder.style.display = "none";
+            imgElement.style.display = "block";
+            
+            // Set the image source
+            imgElement.src = "data:image/jpeg;base64," + data;
+        });
+    </script>
+</body>
+</html>
